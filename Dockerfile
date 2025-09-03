@@ -3,24 +3,18 @@ FROM node:20 AS frontend-builder
 
 WORKDIR /app
 
-# Copy package files first (better caching)
+# Copy package files first
 COPY package*.json ./
 RUN npm install
 
-# Copy Vue source and build assets
+# Copy resources and public folder
 COPY resources ./resources
 COPY vite.config.js .
+
+# Build frontend
 RUN npm run build
 
-#Stage 2: Lightweight runtime for frontend (Node slim)
-FROM node:20-slim AS frontend-runtime
-
-WORKDIR /app
-
-#Copy only built assets (not node_modules or source)
-COPY --from=frontend-builder /app/dist ./dist
-
-# Stage 3: PHP + Composer + Laravel app
+# Stage 2: PHP + Composer + Laravel app
 FROM php:8.2-fpm
 
 # Install system dependencies for Laravel
@@ -46,7 +40,7 @@ COPY . .
 
 # Copy built frontend assets from slim runtime
 # (dist -> public/build depending on your Vite setup)
-COPY --from=frontend-runtime /app/dist ./public/build
+COPY --from=frontend-builder /app/public/build ./public/build
 
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
@@ -54,4 +48,4 @@ RUN composer install --no-dev --optimize-autoloader
 # Fix permissions for Laravel storage & cache
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-CMD ["php-fpm"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]

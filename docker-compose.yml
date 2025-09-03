@@ -1,0 +1,22 @@
+services:
+  app:
+    build: .
+    container_name: axolotl_app
+    working_dir: /var/www/html
+    volumes:
+      # Mount only source folders for live editing
+      - ./resources:/var/www/html/resources:cached
+      - ./routes:/var/www/html/routes
+      - ./database:/var/www/html/database
+      - ./config:/var/www/html/config
+      - ./app:/var/www/html/app
+      # Do NOT mount public/build, so container retains built assets
+    ports:
+      - "8000:8000"
+    command: php artisan serve --host=0.0.0.0 --port=8000
+    networks:
+      - axolotl
+
+networks:
+  axolotl:
+    driver: bridge
